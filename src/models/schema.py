@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Date, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Date, UniqueConstraint, Boolean, func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .db import Base
@@ -63,3 +63,16 @@ class FactTransaction(Base):
     account = relationship("DimAccount")
     cost_center = relationship("DimCostCenter")
     vendor = relationship("DimVendor")
+    anomaly_details = relationship("AnomalyResult", back_populates="transaction", uselist=False, cascade="all, delete-orphan")
+
+class AnomalyResult(Base):
+    __tablename__ = 'anomaly_results'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    transaction_id = Column(Integer, ForeignKey('fact_transactions.id', ondelete='CASCADE'), nullable=False, unique=True)
+    anomaly_score = Column(Numeric(6, 4), nullable=False)
+    is_anomaly = Column(Boolean, nullable=False)
+    model_version = Column(String(50), nullable=False)
+    detected_at = Column(DateTime, server_default=func.now())
+    
+    transaction = relationship("FactTransaction", back_populates="anomaly_details")

@@ -1,0 +1,22 @@
+# Project Context: Strategic Cost Intelligence
+
+## Project Identity
+**Role:** Senior Financial Systems Architect Portfolio - Asset 2.
+
+## Tech Stack
+- Python 3.11+
+- Polars (Dataframes)
+- PostgreSQL (SQLAlchemy + Alembic for migrations)
+- Scikit-learn (ML)
+
+## Business Logic
+- **Data Model:** Star Schema para control de gestión (dim_accounts, dim_cost_centers, dim_vendors, dim_date, fact_transactions).
+- **Advanced Logic:** Detección de anomalías vía Isolation Forest.
+
+## Coding Standards
+- PEP8 Compliance.
+- Type Hinting OBLIGATORIO en funciones y clases.
+- Principios SOLID para diseño modular y extensible.
+
+## Current State
+Repository Initialized. Environment containerized. Persistence layer ready for Alembic migrations.

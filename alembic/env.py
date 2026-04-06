@@ -26,10 +26,19 @@ from src.models.db import Base
 target_metadata = Base.metadata
 
 # Override sqlalchemy.url with the one from the environment variables
-db_url = os.environ.get("DATABASE_URL")
+def get_url():
+    url = os.getenv("DATABASE_URL", "")
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif url.startswith("postgresql://") and "+psycopg2" not in url:
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    
+    # Escapar el carácter '%' para que ConfigParser no intente interpolar
+    return url.replace("%", "%%")
+
+db_url = get_url()
 if db_url:
-    # Escape '%' as '%%' for ConfigParser compatibility
-    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
+    config.set_main_option("sqlalchemy.url", db_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

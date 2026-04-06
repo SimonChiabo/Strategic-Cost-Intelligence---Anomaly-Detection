@@ -10,21 +10,14 @@ from sqlalchemy.orm import sessionmaker
 
 from src.services.forecaster import FinancialForecaster
 from src.services.audit import PredictiveAuditService
+from src.database import get_db_uris
 from src.services.exceptions import InsufficientDataError
 from src.models.schema import DimCostCenter
 from src.schemas import DashboardReport, AuditInsight, ForecastDataPoint, ReportMetadata
 
 # 1. Configuración de Entorno y Estética
 load_dotenv()
-RAW_DATABASE_URL = os.getenv("DATABASE_URL", "")
-
-# Lógica de Adaptación de Drivers (Senior Tech Fix)
-# Polars/ConnectorX necesita 'postgresql://' puro.
-# SQLAlchemy necesita 'postgresql+psycopg2://'.
-if RAW_DATABASE_URL and "postgresql+psycopg2://" not in RAW_DATABASE_URL:
-    SQLALCHEMY_DATABASE_URL = RAW_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://")
-else:
-    SQLALCHEMY_DATABASE_URL = RAW_DATABASE_URL
+SQLALCHEMY_DATABASE_URL, RAW_DATABASE_URL = get_db_uris()
 
 st.set_page_config(
     page_title="FinancialForecaster | Strategic Cost Intelligence",

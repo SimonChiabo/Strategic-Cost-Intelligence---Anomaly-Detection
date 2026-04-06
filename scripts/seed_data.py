@@ -7,18 +7,18 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-# Importar modelos para asegurar que las tablas existen y mapear columnas
-from src.models.db import Base
-from src.models.schema import DimAccount, DimCostCenter, DimVendor, DimDate, FactTransaction
+# Añadir el directorio raíz al path para poder importar src
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.database import get_db_uris
+from src.models.schema import Base, DimDate, DimAccount, DimCostCenter, DimVendor, FactTransaction
 
 # Cargar variables de entorno
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL not found in .env file")
-
-engine = create_engine(DATABASE_URL)
+# Configuración de base de datos centralizada
+SQLALCHEMY_DATABASE_URL, _ = get_db_uris()
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 Session = sessionmaker(bind=engine)
 
 def clear_data():

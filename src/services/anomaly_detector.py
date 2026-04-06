@@ -90,8 +90,8 @@ class AnomalyService:
             JOIN dim_accounts a ON f.account_id = a.id
             JOIN dim_cost_centers c ON f.cost_center_id = c.id
         '''
-        # read_database_uri en Polars (Formato Blindado)
-        return pl.read_database_uri(query=query, uri=self.db_uri, engine="connectorx")
+        # Extracción estable con SQLAlchemy Engine (Objeto de Conexión)
+        return pl.read_database(query=query, connection=self.db_uri)
 
     def fit_predict(self) -> Optional[pl.DataFrame]:
         """

@@ -1,13 +1,15 @@
 import os
 import streamlit as st
-from typing import Tuple
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-def get_db_uris() -> Tuple[str, str]:
+# Única fuente de verdad para el Modelo
+Base = declarative_base()
+
+def get_db_uris():
     """
-    Obtiene y limpia las URIs de conexión para SQLAlchemy y Polars/ConnectorX.
-    Centraliza la lógica para evitar errores de dialecto y drivers.
+    Normaliza las URIs para los diferentes motores.
     """
-    # 1. Intentamos obtener de Streamlit Secrets, fallback a Variables de Entorno
     base_uri = ""
     try:
         if "DATABASE_URL" in st.secrets:
@@ -21,18 +23,28 @@ def get_db_uris() -> Tuple[str, str]:
     if not base_uri:
         return "", ""
 
-    # 2. Limpieza Universal (Soporte para postgres:// y postgresql://)
-    # SQLAlchemy 1.4+ requiere 'postgresql://' obligatoriamente
+    # Limpieza: Asegurar postgresql://
     clean_uri = base_uri.replace("postgres://", "postgresql://")
     
-    # 3. Versión para SQLAlchemy (inyectamos el driver psycopg2)
-    if "postgresql+psycopg2://" not in clean_uri:
+    # SQLAlchemy pide +psycopg2
+    sqlalchemy_uri = clean_uri
+    if "+psycopg2" not in clean_uri:
         sqlalchemy_uri = clean_uri.replace("postgresql://", "postgresql+psycopg2://")
-    else:
-        sqlalchemy_uri = clean_uri
-        
-    # 4. Versión para ConnectorX (Pura, sin drivers de Python)
-    # ConnectorX es un motor en Rust, no entiende '+psycopg2'
+    
+    # ConnectorX pide esquema puro (si se usara), pero aquí usaremos el engine.
     connectorx_uri = clean_uri.replace("postgresql+psycopg2://", "postgresql://")
     
     return sqlalchemy_uri, connectorx_uri
+
+def get_engine():
+    sql_uri, _ = get_db_uris()
+    if not sql_uri:
+        return None
+    # pool_pre_ping=True es VITAL para el Pooler de Supabase
+    return create_engine(sql_uri, pool_pre_ping=True, pool_recycle=300)
+
+engine = get_engine()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Variables exportadas para conveniencia
+SQLALCHEMY_DATABASE_URL, RAW_DATABASE_URL = get_db_uris()

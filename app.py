@@ -17,7 +17,7 @@ from src.schemas import DashboardReport, AuditInsight, ForecastDataPoint, Report
 
 # 1. Configuración de Entorno y Estética
 load_dotenv()
-SQLALCHEMY_DATABASE_URL, RAW_DATABASE_URL = get_db_uris()
+from src.database import engine, SQLALCHEMY_DATABASE_URL, RAW_DATABASE_URL
 
 st.set_page_config(
     page_title="FinancialForecaster | Strategic Cost Intelligence",
@@ -58,8 +58,8 @@ else:
 # 3. Gestión de Conexión y Datos (Caché)
 @st.cache_resource
 def get_engine():
-    if MOCK_MODE or not SQLALCHEMY_DATABASE_URL: return None
-    return create_engine(SQLALCHEMY_DATABASE_URL)
+    if MOCK_MODE or not engine: return None
+    return engine
 
 @st.cache_data
 def get_cost_centers():
@@ -148,8 +148,8 @@ if run_pipeline:
                     metadata=ReportMetadata(model_version="Prophet_v1.1.5_MOCK", execution_timestamp=now)
                 )
             else:
-                # Lógica Real
-                forecaster = FinancialForecaster(db_uri=RAW_DATABASE_URL)
+                # Lógica Real (Usando objeto Engine para estabilidad Polars)
+                forecaster = FinancialForecaster(db_uri=engine)
                 audit_service = PredictiveAuditService()
                 engine = get_engine()
                 with sessionmaker(bind=engine)() as session:

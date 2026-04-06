@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, D
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from .db import Base
+from src.database import Base
 
 class DimAccount(Base):
     __tablename__ = 'dim_accounts'

@@ -83,8 +83,8 @@ class SQLIngestionStrategy(IngestionStrategy):
         """
         query: str = kwargs.get("query", f"SELECT * FROM {source}")
         uri: str = kwargs.get("connection_uri", "")
-        # Nota: read_database_uri (Formato Blindado) para URIs string
-        return pl.read_database_uri(query=query, uri=uri, engine="connectorx").lazy()
+        # Nota: read_database (Estabilidad Total) usando el objeto engine de SQLAlchemy
+        return pl.read_database(query=query, connection=uri).lazy()
 
 
 class ParquetIngestionStrategy(IngestionStrategy):

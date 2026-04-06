@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 import pandas as pd
 import numpy as np
+from src.schemas import DashboardReport, ForecastDataPoint, AuditInsight, ReportMetadata
 
 class AuditLoggerAdapter(logging.LoggerAdapter):
     """Adapter para estructurar los logs del motor de auditoría."""
@@ -135,9 +136,9 @@ class PredictiveAuditService:
                                      history_df: pd.DataFrame, 
                                      forecast_df: pd.DataFrame,
                                      cost_center_id: Optional[int],
-                                     execution_timestamp: str) -> str:
+                                     execution_timestamp: str) -> DashboardReport:
         """
-        Orquestador que genera el reporte final estructurado en JSON.
+        Orquestador que genera el reporte final estructurado mediante Pydantic.
         """
         audit_logger.info("Starting predictive intelligence synthesis.")
 
@@ -145,20 +146,53 @@ class PredictiveAuditService:
         strategy = self.generate_strategic_insights(history_df, forecast_df)
         audit_trail = self.validate_compliance(cost_center_id, execution_timestamp)
 
-        report = {
-            "model_reliability_index": health["reliability_index"],
-            "critical_alerts": health["alerts"] + strategy["strategic_insights"],
-            "strategic_forecast_summary": {
-                "status": health["status"],
-                "burn_rate_indicator": strategy["burn_rate_status"],
-                "forecast_horizon": "12 Months",
-                "avg_projected_value": round(float(forecast_df['yhat'].mean()), 2)
-            },
-            "audit_trail_status": {
-                "sox_compliant": True,
-                "traceability_metadata": audit_trail
-            }
-        }
+        # 1. Mapeo de Forecast Data Points
+        forecast_series = [
+            ForecastDataPoint(
+                ds=row['ds'],
+                yhat=float(row['yhat']),
+                yhat_lower=float(row['yhat_lower']),
+                yhat_upper=float(row['yhat_upper'])
+            ) for _, row in forecast_df.iterrows()
+        ]
+
+        # 2. Mapeo de Alertas e Insights a AuditInsight
+        all_alerts: List[AuditInsight] = []
+        
+        # Procesar alertas de salud (Health)
+        for msg in health["alerts"]:
+            level = "critical" if "MAPE" in msg else "warning"
+            label = "Model Health" if "MAPE" in msg else "Volatility"
+            all_alerts.append(AuditInsight(
+                label=label,
+                value=f"{mape_score:.2f}%" if "MAPE" in msg else f"{health['avg_volatility']*100:.2f}%",
+                level=level,
+                description=msg
+            ))
+
+        # Procesar insights estratégicos (Strategy)
+        for msg in strategy["strategic_insights"]:
+            level = "critical" if "Burn Rate" in msg else "info"
+            label = "Burn Rate" if "Burn Rate" in msg else "Seasonality"
+            all_alerts.append(AuditInsight(
+                label=label,
+                value="High" if "Burn Rate" in msg else "Warning",
+                level=level,
+                description=msg
+            ))
+
+        # 3. Construcción del DashboardReport
+        report = DashboardReport(
+            reliability_index=health["reliability_index"],
+            health_status=health["status"],
+            burn_rate_status=strategy["burn_rate_status"],
+            forecast_series=forecast_series,
+            alerts=all_alerts,
+            metadata=ReportMetadata(
+                model_version=self.model_version,
+                execution_timestamp=datetime.fromisoformat(execution_timestamp) if isinstance(execution_timestamp, str) else execution_timestamp
+            )
+        )
 
         audit_logger.info(f"Intelligence report synthesized. Reliability Index: {health['reliability_index']}")
-        return json.dumps(report, indent=4)
+        return report

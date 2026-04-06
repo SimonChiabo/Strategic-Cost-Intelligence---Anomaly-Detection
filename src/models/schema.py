@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Date, UniqueConstraint, Boolean, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .db import Base
@@ -76,3 +77,30 @@ class AnomalyResult(Base):
     detected_at = Column(DateTime, server_default=func.now())
     
     transaction = relationship("FactTransaction", back_populates="anomaly_details")
+
+class ForecastResult(Base):
+    __tablename__ = 'fact_forecast_results'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cost_center_id = Column(Integer, ForeignKey('dim_cost_centers.id', ondelete='RESTRICT'), nullable=True)
+    
+    ds = Column(Date, nullable=False)
+    yhat = Column(Numeric(12, 2), nullable=False)
+    yhat_lower = Column(Numeric(12, 2), nullable=False)
+    yhat_upper = Column(Numeric(12, 2), nullable=False)
+    
+    model_version = Column(String(50), nullable=False)
+    model_metadata = Column(JSONB, nullable=True)
+    
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            'ds', 'cost_center_id', 'model_version',
+            name='uix_forecast_ds_cc_version',
+            postgresql_nulls_not_distinct=True
+        ),
+    )
+
+    # Relationships
+    cost_center = relationship("DimCostCenter")

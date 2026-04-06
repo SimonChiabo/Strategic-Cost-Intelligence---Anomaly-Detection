@@ -27,6 +27,8 @@ class ReportMetadata(BaseModel):
     """
     Metadatos técnicos de la ejecución del reporte.
     """
+    model_config = ConfigDict(protected_namespaces=())
+
     model_version: str = Field(..., description="Versión del modelo utilizado")
     execution_timestamp: datetime = Field(default_factory=datetime.now, description="Momento de generación del reporte")
 
@@ -36,7 +38,7 @@ class DashboardReport(BaseModel):
     Contrato de datos principal para la UI del Dashboard.
     Define la estructura única de intercambio entre servicios y Streamlit/FastAPI.
     """
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     reliability_index: float = Field(
         ..., 

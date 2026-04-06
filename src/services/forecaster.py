@@ -2,6 +2,12 @@ import logging
 from typing import Optional, Dict, Any
 import polars as pl
 import pandas as pd
+import numpy as np
+from prophet import Prophet
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert
+
+from src.models.schema import ForecastResult
 from src.services.exceptions import InsufficientDataError
 
 class ForecasterLoggerAdapter(logging.LoggerAdapter):
@@ -90,4 +96,130 @@ class FinancialForecaster:
             if isinstance(e, InsufficientDataError):
                 raise e
             forecaster_logger.error(f"Failed to prepare cleaning pipeline: {str(e)}")
+            raise e
+
+    def _calculate_mape(self, df: pd.DataFrame) -> float:
+        """
+        Calcula el Mean Absolute Percentage Error (MAPE) sobre los últimos 90 días.
+        Implementa ingeniería defensiva para evitar división por cero.
+        """
+        # Separación del Test Set (Criterio: últimos 90 días)
+        df['ds'] = pd.to_datetime(df['ds'])
+        last_date = df['ds'].max()
+        split_date = last_date - pd.Timedelta(days=90)
+        
+        train_set = df[df['ds'] < split_date]
+        test_set = df[df['ds'] >= split_date]
+
+        if len(train_set) < 30 or len(test_set) == 0:
+            forecaster_logger.warning("Not enough data for a robust 90-day MAPE validation. Using 0.0 as default score.")
+            return 0.0
+
+        # Entrenamiento temporal para validación
+        model = Prophet(yearly_seasonality=True, interval_width=0.95)
+        model.add_country_holidays(country_name='AR')
+        model.fit(train_set)
+
+        # Predicción sobre el Test Set
+        forecast = model.predict(test_set[['ds']])
+        
+        actual = test_set['y'].values
+        predicted = forecast['yhat'].values
+
+        # Epsilon para evitar división por cero (Senior Engineering trick)
+        epsilon = 1e-10
+        mape = np.mean(np.abs((actual - predicted) / np.maximum(epsilon, np.abs(actual)))) * 100
+        
+        return float(mape)
+
+    def train_baseline(self, df: pd.DataFrame) -> tuple[Prophet, float]:
+        """
+        Entrena el modelo final Prophet y calcula su métrica de error.
+        """
+        # Validación Técnica (MAPE)
+        mape_score = self._calculate_mape(df)
+        forecaster_logger.info(f"Technical validation completed. MAPE: {mape_score:.2f}%")
+
+        # Modelo Final: Entrenado con todo el histórico
+        model = Prophet(yearly_seasonality=True, interval_width=0.95)
+        model.add_country_holidays(country_name='AR')
+        model.fit(df)
+        
+        forecaster_logger.info("Training successful. Prophet Baseline Engine is hot.")
+        return model, mape_score
+
+    def persist_forecast(self, model: Prophet, session: Session, mape_score: float, cost_center_id: Optional[int] = None) -> None:
+        """
+        Genera proyecciones a 12 meses y las persiste mediante una operación de Upsert idempotente.
+        """
+        # Generar DataFrame futuro (12 meses, frecuencia mensual)
+        future = model.make_future_dataframe(periods=12, freq='MS')
+        forecast = model.predict(future)
+
+        # Filtrar solo el futuro (Prophet devuelve también el histórico)
+        last_history_date = model.history['ds'].max()
+        future_forecast = forecast[forecast['ds'] > last_history_date]
+
+        records_to_upsert = []
+        model_version = "Prophet_Baseline_v1"
+
+        for _, row in future_forecast.iterrows():
+            records_to_upsert.append({
+                "cost_center_id": cost_center_id,
+                "ds": row['ds'].date(),
+                "yhat": float(row['yhat']),
+                "yhat_lower": float(row['yhat_lower']),
+                "yhat_upper": float(row['yhat_upper']),
+                "model_version": model_version,
+                "model_metadata": {
+                    "mape_score": mape_score,
+                    "seasonality_mode": model.seasonality_mode,
+                    "interval_width": model.interval_width,
+                }
+            })
+
+        if not records_to_upsert:
+            forecaster_logger.warning("No future points generated. Persistence skipped.")
+            return
+
+        # Operación de Upsert (Idempotencia en Postgres)
+        stmt = insert(ForecastResult).values(records_to_upsert)
+        
+        update_stmt = stmt.on_conflict_do_update(
+            index_elements=['ds', 'cost_center_id', 'model_version'],
+            set_={
+                "yhat": stmt.excluded.yhat,
+                "yhat_lower": stmt.excluded.yhat_lower,
+                "yhat_upper": stmt.excluded.yhat_upper,
+                "model_metadata": stmt.excluded.model_metadata
+            }
+        )
+
+        try:
+            session.execute(update_stmt)
+            session.commit()
+            forecaster_logger.info(f"Persistence complete. {len(records_to_upsert)} projections pushed to warehouse.")
+        except Exception as e:
+            session.rollback()
+            forecaster_logger.error(f"Failed to persist forecast results: {str(e)}")
+            raise e
+
+    def run_baseline_pipeline(self, session: Session, cost_center_id: Optional[int] = None) -> None:
+        """
+        Orquestador principal del flujo de predicción financiera.
+        """
+        try:
+            # 1. Preparación y Limpieza
+            df_clean = self._get_clean_history(cost_center_id=cost_center_id)
+
+            # 2. Validación y Entrenamiento
+            model, mape_score = self.train_baseline(df_clean)
+
+            # 3. Proyección y Persistencia
+            self.persist_forecast(model, session, mape_score, cost_center_id)
+
+            forecaster_logger.info("Pipeline execution finished successfully.")
+
+        except Exception as e:
+            forecaster_logger.error(f"Pipeline execution failed: {str(e)}")
             raise e

@@ -6,3 +6,4 @@ pydantic==2.6.3
 scikit-learn==1.4.1.post1
 pre-commit==3.6.2
 python-dotenv==1.0.1
+prophet==1.1.5

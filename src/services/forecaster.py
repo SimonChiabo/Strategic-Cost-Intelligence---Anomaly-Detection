@@ -57,7 +57,12 @@ class FinancialForecaster:
 
         try:
             # Extracción estable con SQLAlchemy Engine (Objeto de Conexión)
-            lf = pl.read_database(query=query, connection=self.db_uri).lazy()
+            df = pl.read_database(query=query, connection=self.db_uri)
+            
+            # Parche de Normalización de Tipos (Decimal -> Float64)
+            df = df.with_columns(pl.col(pl.Decimal).cast(pl.Float64))
+            lf = df.lazy()
+            
             
             # Filtro opcional por Centro de Costo (Granularidad)
             if cost_center_id is not None:

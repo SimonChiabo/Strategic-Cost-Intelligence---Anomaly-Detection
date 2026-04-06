@@ -84,7 +84,13 @@ class SQLIngestionStrategy(IngestionStrategy):
         query: str = kwargs.get("query", f"SELECT * FROM {source}")
         uri: str = kwargs.get("connection_uri", "")
         # Nota: read_database (Estabilidad Total) usando el objeto engine de SQLAlchemy
-        return pl.read_database(query=query, connection=uri).lazy()
+        df = pl.read_database(query=query, connection=uri)
+        
+        # Parche de Normalización: Convertir Decimal (Postgres) a Float64 (Python/ML)
+        # Esto previene errores de "unsupported operand type" entre decimal y float.
+        return df.with_columns(
+            pl.col(pl.Decimal).cast(pl.Float64)
+        ).lazy()
 
 
 class ParquetIngestionStrategy(IngestionStrategy):

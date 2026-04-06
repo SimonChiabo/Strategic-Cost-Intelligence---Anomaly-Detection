@@ -91,7 +91,10 @@ class AnomalyService:
             JOIN dim_cost_centers c ON f.cost_center_id = c.id
         '''
         # Extracción estable con SQLAlchemy Engine (Objeto de Conexión)
-        return pl.read_database(query=query, connection=self.db_uri)
+        df = pl.read_database(query=query, connection=self.db_uri)
+        
+        # Parche de Normalización de Tipos (Decimal -> Float64)
+        return df.with_columns(pl.col(pl.Decimal).cast(pl.Float64))
 
     def fit_predict(self) -> Optional[pl.DataFrame]:
         """

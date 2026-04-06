@@ -28,7 +28,8 @@ target_metadata = Base.metadata
 # Override sqlalchemy.url with the one from the environment variables
 db_url = os.environ.get("DATABASE_URL")
 if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+    # Escape '%' as '%%' for ConfigParser compatibility
+    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

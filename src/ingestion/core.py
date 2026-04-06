@@ -83,9 +83,8 @@ class SQLIngestionStrategy(IngestionStrategy):
         """
         query: str = kwargs.get("query", f"SELECT * FROM {source}")
         uri: str = kwargs.get("connection_uri", "")
-        # Implementación conceptual perezosa con SQLAlchemy/ConnectorX (Arrow backend)
-        # Nota: read_database no tiene scan nativo sin arrow, por lo que convertimos a lazy.
-        return pl.read_database(query=query, connection=uri).lazy()
+        # Nota: read_database_uri (Formato Blindado) para URIs string
+        return pl.read_database_uri(query=query, uri=uri, engine="connectorx").lazy()
 
 
 class ParquetIngestionStrategy(IngestionStrategy):

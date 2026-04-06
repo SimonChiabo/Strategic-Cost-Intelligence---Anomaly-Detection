@@ -56,8 +56,8 @@ class FinancialForecaster:
         """
 
         try:
-            # Extracción eficiente con Polars
-            lf = pl.read_database(query=query, connection=self.db_uri).lazy()
+            # Extracción eficiente con Polars (Formato Blindado)
+            lf = pl.read_database_uri(query=query, uri=self.db_uri, engine="connectorx").lazy()
             
             # Filtro opcional por Centro de Costo (Granularidad)
             if cost_center_id is not None:

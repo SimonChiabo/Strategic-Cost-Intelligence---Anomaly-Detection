@@ -16,7 +16,15 @@ from src.schemas import DashboardReport, AuditInsight, ForecastDataPoint, Report
 
 # 1. Configuración de Entorno y Estética
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+RAW_DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+# Lógica de Adaptación de Drivers (Senior Tech Fix)
+# Polars/ConnectorX necesita 'postgresql://' puro.
+# SQLAlchemy necesita 'postgresql+psycopg2://'.
+if RAW_DATABASE_URL and "postgresql+psycopg2://" not in RAW_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = RAW_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://")
+else:
+    SQLALCHEMY_DATABASE_URL = RAW_DATABASE_URL
 
 st.set_page_config(
     page_title="FinancialForecaster | Strategic Cost Intelligence",
@@ -41,7 +49,7 @@ st.markdown("""
 st.sidebar.title("🛠️ Command Center")
 st.sidebar.markdown("---")
 
-demo_mode_active = st.sidebar.toggle("🚀 Activar Modo Demostración", value=(not DATABASE_URL))
+demo_mode_active = st.sidebar.toggle("🚀 Activar Modo Demostración", value=(not RAW_DATABASE_URL))
 MOCK_MODE = demo_mode_active
 
 mock_scenario = "Healthy Growth"
@@ -57,8 +65,8 @@ else:
 # 3. Gestión de Conexión y Datos (Caché)
 @st.cache_resource
 def get_engine():
-    if MOCK_MODE or not DATABASE_URL: return None
-    return create_engine(DATABASE_URL)
+    if MOCK_MODE or not SQLALCHEMY_DATABASE_URL: return None
+    return create_engine(SQLALCHEMY_DATABASE_URL)
 
 @st.cache_data
 def get_cost_centers():
@@ -148,7 +156,7 @@ if run_pipeline:
                 )
             else:
                 # Lógica Real
-                forecaster = FinancialForecaster(db_uri=DATABASE_URL)
+                forecaster = FinancialForecaster(db_uri=RAW_DATABASE_URL)
                 audit_service = PredictiveAuditService()
                 engine = get_engine()
                 with sessionmaker(bind=engine)() as session:

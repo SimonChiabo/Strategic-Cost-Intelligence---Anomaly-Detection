@@ -1,7 +1,7 @@
 # 📈 Strategic Cost Intelligence & Predictive Audit Sink
 ### High-performance forecasting ecosystem with SOX-compliant auditing and Prophet-driven intelligence.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://strategic-cost-intelligence.streamlit.app)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://strategic-cost-intelligence---anomaly-detection-bzwopsppvxh7xs.streamlit.app/)
 
 An AI-powered financial intelligence ecosystem orchestrating high-performance cost forecasting (Prophet) with a real-time predictive audit layer. It features a mathematical Reliability Index based on MAPE and volatility, defensive Burn Rate detection for new cost centers (Cold Start Protection), and native regional seasonality integration. Built with a high-performance Rust-based data engine (Polars), strict data validation (Pydantic v2), and deployed on Supabase/Streamlit Cloud.
 

@@ -1,60 +1,49 @@
 # 📈 Strategic Cost Intelligence & Predictive Audit Sink
+### High-performance forecasting ecosystem with SOX-compliant auditing and Prophet-driven intelligence.
 
-### A high-performance financial forecasting ecosystem with SOX-compliant auditing and Prophet-driven intelligence.
-
----
-
-## ⚡ Core Tech Stack
-Este ecosistema ha sido diseñado bajo principios de **High-Performance Computing** y **Type Safety**, garantizando la integridad de las proyecciones financieras críticas.
-
-*   **[Polars](https://pola.rs/)**: Motor de procesamiento de datos ultra-veloz basado en Rust para la limpieza y agregación masiva de transacciones.
-*   **[Prophet](https://facebook.github.io/prophet/)**: Motor de inferencia bayesiana para la generación de series temporales con estacionalidad compleja.
-*   **[Pydantic v2](https://docs.pydantic.dev/latest/)**: Capa de validación estricta y contratos de datos para asegurar el intercambio íntegro entre servicios.
-*   **[ConnectorX](https://github.com/sfu-db/connectorx)**: Driver de acceso a base de datos de alto rendimiento para la extracción masiva de datos desde PostgreSQL.
+An AI-powered financial intelligence ecosystem orchestrating high-performance cost forecasting (Prophet) with a real-time predictive audit layer. It features a mathematical Reliability Index based on MAPE and volatility, defensive Burn Rate detection for new cost centers (Cold Start Protection), and native regional seasonality integration. Built with a high-performance Rust-based data engine (Polars), strict data validation (Pydantic v2), and deployed on Supabase/Streamlit Cloud.
 
 ---
 
-## 🛠️ Engineering Highlights
+## 🛠 Core Tech Stack (Performance First)
 
-### 🧠 Intelligence Sink & Reliability Matrix
-El sistema no solo proyecta costos, sino que audita la calidad de su propia inferencia. Utilizamos una métrica ponderada de confianza para determinar la viabilidad del pronóstico:
+*   **⚡ Polars:** High-performance Rust-based data manipulation engine for sub-millisecond processing.
+*   **🔮 Prophets:** Advanced additive modeling for time-series forecasting with robust trend/seasonality detection.
+*   **🛡️ Pydantic v2:** Strict runtime data validation and type enforcement for financial schema integrity.
+*   **⚙️ SQLAlchemy Engine + Psycopg2:** Stable database connectivity with optimized connection pooling.
+*   **🔢 Decimal Casting Fix:** Explicit handling of PostgreSQL `Numeric` types to ensure floating-point precision in production-grade financial data.
+
+---
+
+## 🏗 Engineering Highlights
+
+### Intelligence Sink (Reliability Matrix)
+The ecosystem calculates a mathematical **Reliability Index** to filter financial noise and prioritize high-confidence data read from Supabase:
 
 $$Index = \max(0, 1 - (0.7 \cdot MAPE_{norm} + 0.3 \cdot \text{Volatility}))$$
 
-Donde $MAPE_{norm}$ representa el error porcentual absoluto medio normalizado y la "Volatility" mide la amplitud del intervalo de confianza relativo al valor predicho.
+This logic intelligently weights normalized Mean Absolute Percentage Error (MAPE) against historical volatility, ensuring that model noise is suppressed and true anomalies are surfaced to stakeholders.
 
-### 🛡️ Defensive Burn Rate (Cold Start Protection)
-Para evitar falsos positivos en el análisis de consumo, el sistema implementa una lógica de protección defensiva:
-- **Requisito Mínimo**: Se requiere una base histórica de $\geq 3$ meses para habilitar el análisis de **Burn Rate**.
-- **Cold Start**: Ante datos insuficientes, el Auditor bloquea las proyecciones para evitar conclusiones erróneas en centros de costo nuevos o con data inconsistente.
+### Defensive Burn Rate
+A proactive risk-mitigation layer designed to detect anomalous spending patterns:
+*   **Momentum Detection:** Comparative analysis of short-term velocity vs. long-term moving averages.
+*   **Cold Start Protection:** Enforces a minimum $\geq 3$ months of historical context before enabling high-sensitivity alerts for new cost centers.
 
-### 🇦🇷 Regional & Seasonal Context
-Integración nativa de **feriados nacionales de Argentina** y estacionalidades locales. Esto permite al motor de auditoría detectar anomalías de flujo de caja durante periodos críticos (e.g., cuellos de botella por feriados puente o festividades regionales).
-
----
-
-## 🏗️ Architecture & Decoupling
-El proyecto sigue una arquitectura de servicios desacoplada, facilitando la migración futura a microservicios a través de FastAPI:
-
-1.  **Forecaster Service**: Orquestador de Polars y Prophet encargado de la ingeniería de datos y persistencia.
-2.  **Audit Service**: Motor de reglas de negocio y cálculo de confiabilidad (Intelligence Report).
-3.  **Streamlit UI**: Interfaz de comando centralizada para la visualización interactiva y gestión de escenarios.
+### Regional Context
+Native integration of **Argentine national holidays** and local economic calendars, enabling the model to distinguish between legitimate seasonal variations and actual cash flow anomalies.
 
 ---
 
-## 🚀 Usage & Portability
+## 🚀 Deployment & Portability
 
-### Demo Mode (Zero DB Setup)
-El sistema cuenta con detección automática de entorno. Si no existe una `DATABASE_URL` configurada, el "Command Center" activa el **Mock Mode**:
-- Carga automática de escenarios de simulación.
-- Generación de datos sintéticos con patrones de negocio realistas.
-- Ideal para demostraciones rápidas y validación de UI/UX.
-
-### Compliance & SOX Readiness
-Diseñado para entornos financieros auditables:
-- **Timestamps Inmutables**: Cada ejecución queda registrada con marcas de tiempo precisas.
-- **Model Versioning**: Trazabilidad completa de la versión del algoritmo utilizado para cada punto de dato proyectado.
+*   **Streamlit Cloud:** High-availability deployment for real-time executive dashboards.
+*   **Robust Mock Mode:** A zero-setup demonstration environment that bypasses live DB dependencies for rapid stakeholder reviews.
 
 ---
-> [!NOTE]
-> **Minimalismo y Resultados**: Este ecosistema prioriza la entrega de insights accionables sobre el volumen de datos, permitiendo a los departamentos financieros tomar decisiones basadas en evidencia probabilística.
+
+## ⚖️ Compliance & SOX Readiness
+
+Engineered for auditable enterprise environments:
+*   **Model Versioning:** Immutable history of hyperparameter configurations and forecasting trajectories.
+*   **Audit-Ready Timestamps:** All predictive outputs are logged with non-repudiable timestamps.
+*   **Risk Mitigation:** Designed to meet Sarbanes-Oxley (SOX) standards for internal controls and data integrity.
